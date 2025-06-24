@@ -25,12 +25,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 MEDIA_URL  = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-STATIC_URL  = "/Static/"
+STATIC_URL  = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
  # 3a) Tell Django to also look inside <BASE_DIR>/static/ when loading static files.
 STATICFILES_DIRS = [
-     BASE_DIR / "Static",
+     BASE_DIR / "static",
 ]
 
 
