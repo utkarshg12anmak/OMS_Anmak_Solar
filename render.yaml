@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: oms-project
+    runtime: python
+    region: oregon
+    buildCommand: >
+      pip install -r requirements.txt &&
+      python manage.py collectstatic --no-input &&
+      python manage.py migrate
+    startCommand: gunicorn oms_project.wsgi:application
+    envVars:
+      - key: SECRET_KEY
+        value: django-insecure-*51yuzpyls+3q#n1w4!lyxyf4h3si=pb6($ovjheousnhn)+&j
+      - key: DEBUG
+        value: False
+      - key: MYSQL_HOST
+        value: oms1.cpyqk6c0avpq.eu-north-1.rds.amazonaws.com
+      - key: MYSQL_PORT
+        value: 3306
+      - key: MYSQL_USER
+        value: admin
+      - key: MYSQL_PASSWORD
+        value: asdfghjklp123
+      - key: MYSQL_DB
+        value: oms_db
+      - key: ALLOWED_HOSTS
+        value: oms-project.onrender.com
