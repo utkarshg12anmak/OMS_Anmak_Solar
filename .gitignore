@@ -10,7 +10,7 @@ __pycache__/
 *.pot
 *.pyc
 # staticfiles/
-media/
+# media/
 
 # Environment
 .env
