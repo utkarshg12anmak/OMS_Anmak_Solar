@@ -1,6 +1,7 @@
 import os
 import pymysql
 from pathlib import Path
+import dj_database_url
 
 # ─── OLD DEFINITIONS (REMOVE THESE!) ────────────────────────────────────────────
 # BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -127,6 +128,14 @@ DATABASES = {
             # 'ssl': {'ssl-mode': 'REQUIRED'},
         }
     }
+}
+
+DATABASES = {
+    "default": dj_database_url.parse(
+        "mysql://admin:asdfghjklp123@oms1.cpyqk6c0avpq.eu-north-1.rds.amazonaws.com:3306/oms_db",  # throws KeyError if missing—good for catching mis-configuration early
+        conn_max_age=600,
+        ssl_require=not DEBUG,
+    )
 }
 
 

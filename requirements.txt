@@ -17,3 +17,4 @@ docx2pdf
 python-docx
 waitress
 Pillow
+dj-database-url
