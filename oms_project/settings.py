@@ -114,27 +114,27 @@ WSGI_APPLICATION = "oms_project.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.environ.get("MYSQL_DB"),
-        'USER': os.environ.get("MYSQL_USER"),
-        'PASSWORD': os.environ.get("MYSQL_PASSWORD"),
-        'HOST': os.environ.get("MYSQL_HOST"),
-        'PORT': os.environ.get("MYSQL_PORT", "3306"),
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-            # Uncomment below for production security
-            # 'ssl': {'ssl-mode': 'REQUIRED'},
-        }
-    }
-}
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': os.environ.get("MYSQL_DB"),
+#         'USER': os.environ.get("MYSQL_USER"),
+#         'PASSWORD': os.environ.get("MYSQL_PASSWORD"),
+#         'HOST': os.environ.get("MYSQL_HOST"),
+#         'PORT': os.environ.get("MYSQL_PORT", "3306"),
+#         'OPTIONS': {
+#             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+#             # Uncomment below for production security
+#             # 'ssl': {'ssl-mode': 'REQUIRED'},
+#         }
+#     }
+# }
 
 DATABASES = {
     "default": dj_database_url.parse(
         "mysql://admin:asdfghjklp123@oms1.cpyqk6c0avpq.eu-north-1.rds.amazonaws.com:3306/oms_db",  # throws KeyError if missing—good for catching mis-configuration early
         conn_max_age=600,
-        ssl_require=not DEBUG,
+        ssl_require=False,
     )
 }
 
