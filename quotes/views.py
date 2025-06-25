@@ -49,6 +49,10 @@ from docx.oxml.ns import qn
 from docx.shared import RGBColor, Pt
 from docx.oxml.ns import qn
 
+from .models import Quote, QuoteItem
+from .mixins import LeadAccessMixin
+from profiles.models import DepartmentMembership
+
 
 
 @login_required
@@ -167,8 +171,14 @@ class QuoteApprovalListView(LeadAccessMixin, ListView):
     paginate_by = 10
 
     def dispatch(self, request, *args, **kwargs):
-        # existing Sales-dept permission check...
+        # only allow if user is in a Sales or Finance department
+        if not DepartmentMembership.objects.filter(
+            user=request.user,
+            department__dept_type__name__in=["Sales", "Finance"]
+        ).exists():
+            raise PermissionDenied("You do not have permission to view quote approvals.")
         return super().dispatch(request, *args, **kwargs)
+
 
     def get_queryset(self):
         tab = self.request.GET.get("tab", "pending")
