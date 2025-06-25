@@ -350,6 +350,7 @@
           <th>Updated By</th>
           <th>Updated At</th>
           <th>Lead ID</th>
+          <th>Lead Manager</th>
           <th>Dials</th>
           <th>Actions</th>
         </tr>
@@ -391,6 +392,13 @@
                   —
                 {% endif %}
               </td>
+             <td>
+                {% if interest.lead %}
+                  {{ interest.lead.lead_manager.get_full_name }}
+                {% else %}
+                  —
+                {% endif %}
+              </td>              
               <td>
               <button
                 class="dials-btn"
