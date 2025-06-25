@@ -125,7 +125,11 @@ def create_quote_json(request, lead_id):
         except InvalidOperation:
             continue
 
-        total_min += pr.base_price * qty_dec
+        # compute tiered unit price
+        tiers = pr.tiers.filter(min_quantity__lte=qty_dec).order_by("-min_quantity")
+        unit_price = tiers[0].price if tiers else pr.base_price
+        line_min = unit_price * qty_dec
+        total_min += line_min        
 
         QuoteItem.objects.create(
             quote=quote,

@@ -156,6 +156,29 @@
   .submit-quote:hover {
     background: var(--primary-hover-color);
   }
+
+  .item-row {
+  display: grid;
+  grid-template-columns: 
+    2fr    /* select */
+    6rem   /* unit-price */
+    5rem   /* unit-type */
+    5rem   /* qty */
+    6rem   /* line-total */
+    auto;  /* remove button */
+  gap: 0.75rem;
+  /* … rest of your styling … */
+}
+
+.unit-price,
+.line-total {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  color: var(--text-dark);
+}
+
 </style>
 
 <div id="quotation-modal" class="quotation-overlay">
@@ -174,16 +197,23 @@
         <div class="item-row">
           <select class="price-rule" required>
             <option value="">— Select component —</option>
-            {% for rule in price_rules %}
-            <option
-              value="{{ rule.pk }}"
-              data-price="{{ rule.base_price }}"
-              data-unit="{{ rule.get_unit_type_display }}"
-            >
-              {{ rule.item.product_name }} @ ₹{{ rule.base_price }}
-            </option>
-            {% endfor %}
+               {% for rule in price_rules %}
+                <option
+                  value="{{ rule.pk }}"
+                  data-base-price="{{ rule.base_price }}"
+                  data-unit="{{ rule.get_unit_type_display }}"
+                  data-tiers='[
+                    {% for tier in rule.tiers.all %}
+                      {"min": {{ tier.min_quantity }}, "price": {{ tier.price }} }{% if not forloop.last %},{% endif %}
+                    {% endfor %}
+                  ]'>
+                  {{ rule.item.product_name }} / {{ rule.item.uom }}
+                </option>
+              {% endfor %}
           </select>
+
+            <!-- NEW: shows “Per-unit” based on selection & tiers -->
+          <div class="unit-price">₹0.00</div>
 
           <span class="unit-type">—</span>
 
@@ -194,6 +224,9 @@
                  step="1"
                  pattern="\d*"
                  required />
+
+          <!-- NEW: line total = unit-price × qty -->
+          <div class="line-total">₹0.00</div>
 
           <button type="button" class="remove-item">&times;</button>
         </div>
@@ -223,47 +256,70 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-  // ───── Element references ─────
-  const openBtn       = document.getElementById('openQuotationBtn');
-  const modal         = document.getElementById('quotation-modal');
-  const closeBtn      = document.getElementById('closeQuotationModal');
-  const overlay       = modal;
-  const container     = document.getElementById('items-container');
-  const prototypeRow  = container.querySelector('.item-row');
-  const addItemBtn    = document.getElementById('addItem');
-  const calcBtn       = document.getElementById('calcMSP');
-  const mspDisplay    = document.getElementById('mspValue');
-  const minPriceFld   = document.getElementById('minimum_price');
-  const itemsJsonFld  = document.getElementById('items_json');
-  const form          = document.getElementById('quotationForm');
+  // ───── Element refs ─────
+  const openBtn      = document.getElementById('openQuotationBtn');
+  const modal        = document.getElementById('quotation-modal');
+  const closeBtn     = document.getElementById('closeQuotationModal');
+  const overlay      = modal;
+  const container    = document.getElementById('items-container');
+  const prototypeRow = container.querySelector('.item-row');
+  const addItemBtn   = document.getElementById('addItem');
+  const calcBtn      = document.getElementById('calcMSP');
+  const mspDisplay   = document.getElementById('mspValue');
+  const minPriceFld  = document.getElementById('minimum_price');
+  const itemsJsonFld = document.getElementById('items_json');
+  const form         = document.getElementById('quotationForm');
 
   if (!openBtn || !modal || !form) return;
 
-  // ───── Row behavior ─────
-  function attachRow(r) {
-    const sel = r.querySelector('.price-rule');
-    const ut  = r.querySelector('.unit-type');
-    const rem = r.querySelector('.remove-item');
-    const qty = r.querySelector('.quantity');
+  // ───── Recalculate ONE row ─────
+  function recalcRow(row) {
+    const sel    = row.querySelector('.price-rule');
+    const opt    = sel.selectedOptions[0];
+    const qtyEl  = row.querySelector('.quantity');
+    const unitEl = row.querySelector('.unit-price');
+    const typeEl = row.querySelector('.unit-type');
+    const lineEl = row.querySelector('.line-total');
 
-    sel.addEventListener('change', () => {
-      ut.textContent = sel.selectedOptions[0]?.dataset.unit || '—';
+    if (!opt) return;
+
+    // 1) Update Unit-Type
+    typeEl.textContent = opt.dataset.unit || '—';
+
+    // 2) Figure out the right per-unit price:
+    const base  = parseFloat(opt.dataset.basePrice) || 0;
+    const tiers = JSON.parse(opt.dataset.tiers || '[]');
+    const qty   = parseInt(qtyEl.value, 10) || 0;
+    let unitPrice = base;
+    tiers.forEach(t => {
+      if (qty >= t.min) unitPrice = parseFloat(t.price);
     });
+
+    // 3) Write Unit-Price & Line-Total
+    const lineTotal = unitPrice * qty;
+    unitEl.textContent = `₹${unitPrice.toLocaleString('en-IN', {minimumFractionDigits:2})}`;
+    lineEl.textContent  = `₹${lineTotal.toLocaleString('en-IN', {minimumFractionDigits:2})}`;
+  }
+
+  // ───── Wire up row events ─────
+  function attachRow(row) {
+    const sel = row.querySelector('.price-rule');
+    const qty = row.querySelector('.quantity');
+    const rem = row.querySelector('.remove-item');
+
+    sel.addEventListener('change', () => recalcRow(row));
+    qty.addEventListener('input', () => recalcRow(row));
     rem.addEventListener('click', () => {
-      if (container.children.length > 1) r.remove();
-    });
-    qty.addEventListener('input', () => {
-      // only digits, no leading zeros
-      qty.value = qty.value.replace(/\D/g, '');
-      if (qty.value.startsWith('0')) qty.value = '';
+      if (container.children.length > 1) row.remove();
     });
   }
+
   // wire existing rows
   container.querySelectorAll('.item-row').forEach(attachRow);
 
-  // ───── Open & close modal ─────
-  openBtn.addEventListener('click', () => modal.classList.add('active'));
-  closeBtn.addEventListener('click', () => modal.classList.remove('active'));
+  // ───── Modal open/close ─────
+  openBtn.addEventListener('click',    () => modal.classList.add('active'));
+  closeBtn.addEventListener('click',   () => modal.classList.remove('active'));
   overlay.addEventListener('click', e => {
     if (e.target === overlay) modal.classList.remove('active');
   });
@@ -271,9 +327,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // ───── Add new row ─────
   addItemBtn.addEventListener('click', () => {
     const newRow = prototypeRow.cloneNode(true);
-    newRow.querySelector('.price-rule').value    = '';
+    newRow.querySelector('.price-rule').value      = '';
     newRow.querySelector('.unit-type').textContent = '—';
-    newRow.querySelector('.quantity').value      = '';
+    newRow.querySelector('.unit-price').textContent= '₹0.00';
+    newRow.querySelector('.line-total').textContent= '₹0.00';
+    newRow.querySelector('.quantity').value        = '';
     attachRow(newRow);
     container.appendChild(newRow);
   });
@@ -281,32 +339,35 @@ document.addEventListener('DOMContentLoaded', () => {
   // ───── Calculate MSP ─────
   calcBtn.addEventListener('click', () => {
     let total = 0;
-    container.querySelectorAll('.item-row').forEach(r => {
-      const opt   = r.querySelector('.price-rule').selectedOptions[0];
-      const price = parseFloat(opt?.dataset.price) || 0;
-      const qty   = parseInt(r.querySelector('.quantity').value) || 0;
-      total += price * qty;
+    container.querySelectorAll('.item-row').forEach(row => {
+      const lineText = row.querySelector('.line-total').textContent;
+      const num      = parseFloat(lineText.replace(/₹|,/g, '')) || 0;
+      total += num;
     });
-    // display and store
-    mspDisplay.textContent  = total.toLocaleString('en-IN', {
-      minimumFractionDigits: 2, maximumFractionDigits: 2
-    });
-    minPriceFld.value       = total.toFixed(2);
+    mspDisplay.textContent = total.toLocaleString('en-IN', {minimumFractionDigits:2});
+    minPriceFld.value      = total.toFixed(2);
   });
 
   // ───── Intercept submit ─────
   form.addEventListener('submit', async e => {
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault(); e.stopPropagation();
 
-    // collect items
+    // gather items
     const items = Array.from(container.children).map(r => ({
       price_rule: r.querySelector('.price-rule').value,
       quantity:   r.querySelector('.quantity').value
     }));
-    if (!items.length) return alert('Add at least one item.');
-    if (!minPriceFld.value || parseFloat(minPriceFld.value) === 0)
-      return alert('Click “Calculate MSP” first.');
+
+    if (!items.length) {
+      return alert('Add at least one item.');
+    }
+
+    // grab the *user-entered* selling price
+   const sellInput = document.getElementById('id_selling_price');
+   const sellingValue = parseFloat(sellInput.value);
+   if (!sellingValue || sellingValue <= 0) {
+     return alert('Please enter a valid Selling Price.');
+   }
 
     itemsJsonFld.value = JSON.stringify(items);
 
@@ -318,21 +379,21 @@ document.addEventListener('DOMContentLoaded', () => {
           'X-CSRFToken':      '{{ csrf_token }}',
           'X-Requested-With': 'XMLHttpRequest'
         },
-        body: JSON.stringify({
-          items,
-          selling_price: parseFloat(minPriceFld.value)
-        })
+       body: JSON.stringify({
+         items,
+         selling_price: sellingValue
+       })
       });
       const json = await resp.json();
       if (json.success) {
         modal.classList.remove('active');
         window.location.reload();
       } else {
-        alert('Error: ' + (json.error || 'unknown'));
+        alert('Error: ' + (json.error || 'Unknown error'));
       }
     } catch (err) {
-      console.error('Quote submission failed', err);
-      alert('Network error—check console');
+      console.error('Quote submit failed', err);
+      alert('Network error—see console');
     }
   });
 });

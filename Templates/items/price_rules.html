@@ -410,4 +410,42 @@ document.body.addEventListener("click", async e => {
   modal.style.display = "flex";
 });</script>
 
+<script>
+  (function(){
+    function getCookie(name) {
+      let value = "; " + document.cookie;
+      let parts = value.split("; " + name + "=");
+      if (parts.length === 2) return parts.pop().split(";").shift();
+    }
+    const csrftoken = getCookie("csrftoken");
+
+    document.querySelectorAll(".availability-toggle").forEach(checkbox => {
+      checkbox.addEventListener("change", async function() {
+        const ruleId = this.dataset.id;
+        const isOn   = this.checked;
+        const url    = `{% url 'items:price_rule_toggle_availability' 0 %}`.replace("/0/", `/${ruleId}/`);
+        try {
+          const resp = await fetch(url, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": csrftoken,
+              "X-Requested-With": "XMLHttpRequest"
+            },
+            body: JSON.stringify({ available: isOn })
+          });
+          const data = await resp.json();
+          if (!data.success) throw new Error("Server rejected update");
+          // reload page to reflect changes
+          window.location.reload();
+        } catch (err) {
+          console.error("Toggle failed:", err);
+          this.checked = !isOn;
+          alert("Could not update availability. Please try again.");
+        }
+      });
+    });
+  })();
+</script>
+
 {% endblock %}

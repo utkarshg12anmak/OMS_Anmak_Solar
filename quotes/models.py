@@ -65,9 +65,20 @@ class QuoteItem(models.Model):
     calculated_price = models.DecimalField(max_digits=12, decimal_places=2, editable=False)
 
     def save(self, *args, **kwargs):
-        # compute calculated_price
-        if self.price_rule and self.quantity is not None:
-            self.calculated_price = self.price_rule.base_price * self.quantity
+        # 1) find the best‐applicable tier
+        qty = self.quantity or Decimal("0")
+        tiers = (
+            self.price_rule.tiers
+                .filter(min_quantity__lte=qty)
+                .order_by("-min_quantity")
+        )
+        if tiers.exists():
+            unit_price = tiers.first().price
+        else:
+            unit_price = self.price_rule.base_price
+
+        # 2) compute line total
+        self.calculated_price = unit_price * qty
         super().save(*args, **kwargs)
 
     def __str__(self):
