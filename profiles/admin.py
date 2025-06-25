@@ -78,7 +78,16 @@ class DepartmentAdmin(admin.ModelAdmin):
     inlines      = (DepartmentMembershipInline,)
    
     readonly_fields = ('draft_quotation_link',)
-    fields = ('name', 'draft_quotation', 'draft_quotation_link')
+    # include all the ones you actually want editors to be able to set:
+    fields = (
+        'name',
+        'parent',
+        'dept_type',
+        'region',
+        'category',
+        'draft_quotation',
+        'draft_quotation_link',
+    )
 
     def draft_quotation_link(self, obj):
         if obj.draft_quotation:
