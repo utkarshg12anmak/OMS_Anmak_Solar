@@ -53,12 +53,23 @@
 
 <script>
   (function() {
-    // 1) Close button simply hides the overlay
-    document.getElementById("closeModal").addEventListener("click", () => {
-      document.querySelector(".modal-overlay").style.display = "none";
+    const overlay = document.querySelector(".modal-overlay");
+    const closeBtn = document.getElementById("closeModal");
+
+    // 2) Close when the × is clicked:
+    closeBtn.addEventListener("click", () => {
+      overlay.style.display = "none";
     });
 
-    // 2) Intercept form submission to do AJAX POST
+    // 3) Close when clicking *on* the overlay background:
+    overlay.addEventListener("click", (e) => {
+      // if the click target *is* the overlay (not a child element), hide it
+      if (e.target === overlay) {
+        overlay.style.display = "none";
+      }
+    });
+
+    // 4) Your existing AJAX‐submit logic
     document.getElementById("lead-edit-form").addEventListener("submit", async function(e) {
       e.preventDefault();
       const formEl = this;
@@ -71,21 +82,19 @@
         body: data
       });
 
-      // If JSON { "success": true } returned, close modal:
       try {
         const obj = await resp.json();
         if (obj.success) {
-          document.querySelector(".modal-overlay").style.display = "none";
+          overlay.style.display = "none";
           return;
         }
       } catch (err) {
         // Not JSON → HTML with validation errors
       }
 
-      // Otherwise, re‐inject returned HTML (with errors) into the same placeholder
+      // Re-inject HTML with errors
       const newHtml = await resp.text();
       document.getElementById("leadModalContainer").innerHTML = newHtml;
-      // The <script> block in the returned HTML re‐runs itself, re‐binding close and submit handlers.
     });
   })();
 </script>

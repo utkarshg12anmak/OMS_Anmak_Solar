@@ -1700,28 +1700,39 @@
 
 {# ================= JS to open the modal and load the partial ================= #}
 <script>
-  document.addEventListener("DOMContentLoaded", () => {
-    const btn  = document.getElementById("openLeadEditBtn");
-    const box  = document.getElementById("leadModalContainer");
-    if (!btn || !box) return;
-
-    btn.addEventListener("click", async e => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      const resp = await fetch(
-        "{% url 'leads:edit_form' lead.pk %}",
-        { headers: { "X-Requested-With": "XMLHttpRequest" } }
-        );
-      const html = await resp.text();
-
-      // inject and show
-      box.innerHTML = html;
-      const overlay = box.querySelector(".modal-overlay");
-      if (overlay) overlay.style.display = "flex";
+// A single listener for all modal overlays & close buttons:
+document.addEventListener('click', e => {
+  // 1) Opening the edit modal:
+  if (e.target.matches('#openLeadEditBtn, #openLeadEditBtn *')) {
+    e.preventDefault();
+    fetch("{% url 'leads:edit_form' lead.pk %}", {
+      headers: { "X-Requested-With": "XMLHttpRequest" }
+    })
+    .then(r => r.text())
+    .then(html => {
+      const container = document.getElementById('leadModalContainer');
+      container.innerHTML = html;
+      const ov = container.querySelector('.modal-overlay');
+      if (ov) ov.style.display = 'flex';
     });
-  });
+    return;
+  }
+
+  // 2) Close btn (×) anywhere in a modal:
+  if (e.target.id === 'closeModal') {
+    const ov = e.target.closest('.modal-overlay');
+    if (ov) ov.style.display = 'none';
+    return;
+  }
+
+  // 3) Click on backdrop:
+  if (e.target.classList.contains('modal-overlay')) {
+    e.target.style.display = 'none';
+    return;
+  }
+});
 </script>
+
 
 
 
