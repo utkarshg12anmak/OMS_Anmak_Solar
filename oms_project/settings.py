@@ -95,7 +95,7 @@ TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         # This will now work, because BASE_DIR is a `Path`.
-        "DIRS": [ BASE_DIR / "templates" ],
+        "DIRS": [ BASE_DIR / "templates_tmp" ],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
